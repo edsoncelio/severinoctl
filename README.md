@@ -24,3 +24,9 @@ Otherwise:
 ```
 ❌ Tag '1.0' not found, reason: <REASON> - try again!
 ```
+
+## TODO
+ - [ ] Add unit tests
+ - [ ] Use aws sdk instead of aws cli
+ - [x] Add option to check if a tag exists in a ECR repository
+ - [ ] Add option to create a ECS task definition revision (and show a diff)
