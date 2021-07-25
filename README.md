@@ -29,7 +29,7 @@ Otherwise:
 ❌ Tag '1.0' not found, reason: <REASON> - try again!
 ```
 
-2. To list all the revisions related to a specific task definition:
+2. To list all the revisions related to a specific task definition:   
 `severinoctl listTask --name sample-app`
 
 Then, you i'll see:
