@@ -6,13 +6,14 @@ A tool to automate some tasks in ECS/ECR.
 ## Prerequisites
 * awscli
 * working aws credentials
+* environment `AWS_REGION` exported
 
 ## How to install
 TODO
 
 ## Features
  - [x] Check if a tag exists in a ECR repository
- - [x] List task definition revisions to a family
+ - [x] List task definition ARN revisions to a family
 
 ## Usage
 
@@ -40,7 +41,7 @@ TaskDefinition ARN to revision 1: arn:aws:ecs:us-east-1:<AWS ACCOUNT>:task-defin
 ```
 
 ## TODO
- - [ ] Add unit tests
+ - [ ] Add tests
  - [ ] Use aws sdk instead of aws cli
  - [ ] Configure goreleaser
  - [ ] Add option to create a ECS task definition revision (and show a diff)
