@@ -9,7 +9,7 @@ A tool to automate some tasks in ECS/ECR.
 * environment `AWS_REGION` exported
 
 ## How to install
-TODO
+Get a binary from https://github.com/edsoncelio/severinoctl/releases/tag/v0.1.0
 
 ## Features
  - [x] Check if a tag exists in a ECR repository
