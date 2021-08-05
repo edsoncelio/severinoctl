@@ -16,12 +16,12 @@ type TaskDefinition struct {
 }
 
 type TaskDefinitions struct {
-	TaskDefinitionArn string `json:"taskDefinitionArn"`
-	IpcMode           string `json:"ipcMode"`
-	ExecutionRoleArn  string `json:"executionRoleArn"`
-
+	TaskDefinitionArn       string          `json:"taskDefinitionArn"`
+	IpcMode                 string          `json:"ipcMode"`
+	ExecutionRoleArn        string          `json:"executionRoleArn"`
 	ContainerDefinitions    []ContainerOpts `json:"containerDefinitions"`
 	CPU                     string          `json:"cpu"`
+	Memory                  string          `json:"memory"`
 	Family                  string          `json:"family"`
 	NetworkMode             string          `json:"networkMode"`
 	RequiresCompatibilities []string        `json:"requiresCompatibilities"`
@@ -33,9 +33,9 @@ type ContainerOpts struct {
 	EntryPoint        []string          `json:"entryPoint"`
 	Essential         bool              `json:"essential"`
 	Image             string            `json:"image"`
-	Cpu               int16             `json:"cpu"`
-	Memory            int16             `json:"memory"`
-	MemoryReservation int16             `json:"memoryReservation"`
+	Cpu               int16             `json:"cpu,omitempty"`
+	Memory            int16             `json:"memory,omitempty"`
+	MemoryReservation int16             `json:"memoryReservation,omitempty"`
 	Environment       []EnvironmentOpts `json:"environment"`
 }
 
@@ -46,7 +46,7 @@ type EnvironmentOpts struct {
 
 func updateTaskDefinition(imageName string, taskFamily string, region string) {
 	var OutputTaskDefinition TaskDefinition
-
+	var formattedContainerDefinitions []ContainerOpts
 	_, lookErr := exec.LookPath("aws")
 	if lookErr != nil {
 		panic(lookErr)
@@ -60,15 +60,28 @@ func updateTaskDefinition(imageName string, taskFamily string, region string) {
 	json.Unmarshal([]byte(out), &OutputTaskDefinition)
 
 	if len(OutputTaskDefinition.TaskDefinitions.ContainerDefinitions) > 0 {
-		fmt.Printf("Docker image found: %s, the new revision will use the image '%s'\n", OutputTaskDefinition.TaskDefinitions.ContainerDefinitions[0].Image, imageName)
+		if OutputTaskDefinition.TaskDefinitions.ContainerDefinitions[0].Image == imageName {
+			fmt.Printf("⚠️  The image is already registered\n")
+			return
+		} else {
+			fmt.Printf("🔍 Actual image found: %s - New image to use: '%s'\n", OutputTaskDefinition.TaskDefinitions.ContainerDefinitions[0].Image, imageName)
+		}
 	}
 
 	OutputTaskDefinition.TaskDefinitions.ContainerDefinitions[0].Image = imageName
 
-	outJson, _ := json.Marshal(OutputTaskDefinition.TaskDefinitions)
-	fmt.Println(string(outJson))
-	registerTask(string(outJson), region)
+	if len(OutputTaskDefinition.TaskDefinitions.ContainerDefinitions) > 0 {
+		formattedContainerDefinitions = prepareContainerDefinitions(OutputTaskDefinition.TaskDefinitions.ContainerDefinitions, imageName)
+	} else {
+		fmt.Printf("%s", "No container definition found")
 
+	}
+	if OutputTaskDefinition.TaskDefinitions.Memory == "" {
+		OutputTaskDefinition.TaskDefinitions.Memory = "200" // set a default value to task memory
+	}
+	fmt.Printf("⌛  Creating the new revision...\n")
+	outTask := registerTask(taskFamily, formattedContainerDefinitions, OutputTaskDefinition.TaskDefinitions.Memory)
+	fmt.Printf("🎉 Revision '%s' created!\n", outTask.TaskDefinitions.TaskDefinitionArn)
 }
 
 func listTaskDefinition(familyPrefix string) {
@@ -92,16 +105,40 @@ func listTaskDefinition(familyPrefix string) {
 	}
 }
 
-func registerTask(taskDefinition string, region string) {
+func prepareContainerDefinitions(containerDefinition []ContainerOpts, image string) []ContainerOpts {
+	containerItem := 0
+	for i, definitions := range containerDefinition {
+		if definitions.Image == image {
+			containerItem = i
+		}
+	}
+
+	if containerDefinition[containerItem].Command == nil {
+		containerDefinition[containerItem].Command = []string{}
+	}
+
+	if containerDefinition[containerItem].EntryPoint == nil {
+		containerDefinition[containerItem].EntryPoint = []string{}
+	}
+
+	return containerDefinition
+}
+
+func registerTask(Taskfamily string, containerDefinition []ContainerOpts, memory string) TaskDefinition {
+	var taskDefinition TaskDefinition
 	_, lookErr := exec.LookPath("aws")
 	if lookErr != nil {
 		panic(lookErr)
 	}
 
-	out, err := exec.Command("aws", "ecs", "register-task-definition", "--cli-input-json", taskDefinition, "--region", region).Output()
+	outJson, _ := json.Marshal(containerDefinition)
+	formmatedJson := fmt.Sprintf(`%s`, string(outJson))
 
+	cmd := exec.Command("aws", "ecs", "register-task-definition", "--family", Taskfamily, "--container-definitions", formmatedJson, "--memory", memory)
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%s", out)
+	json.Unmarshal([]byte(out), &taskDefinition)
+	return taskDefinition
 }
