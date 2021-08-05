@@ -51,7 +51,7 @@ Otherwise:
 ```
 🔍 Actual image found: myimage:v1.0.0 - New image to use: 'myimage:v2.0.0'
 ⌛  Creating the new revision...
-🎉 Revision 'arn:aws:ecs:us-east-1:154876241917:task-definition/sample-app:19' created!
+🎉 Revision 'arn:aws:ecs:us-east-1:<AWS ACCOUNT>:task-definition/sample-app:19' created!
 ```
 
 ## TODO
